@@ -1,0 +1,44 @@
+esphome:
+  name: leak-detector
+  friendly_name: Leak_Detector
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: ""
+
+ota:
+  - platform: esphome
+    password: ""
+
+wifi:
+  ssid: !secret ssid
+  password: !secret password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Leak-Detector Fallback Hotspot"
+    password: ""
+
+captive_portal:
+
+#SEED Xiao esp32-c3 will use GPIO10 if direct soldered
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO10
+      mode:
+        input: True
+        pullup: True
+      inverted: True
+      name: Leak_Sensor
+      filters:
+        - delayed_on_off: 20ms

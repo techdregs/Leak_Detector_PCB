@@ -1,0 +1,74 @@
+esphome:
+  name: leak-detector
+  friendly_name: Leak_Detector
+  on_boot:
+    then:
+      - script.execute: leak_test
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: ""
+
+ota:
+  - platform: esphome
+    password: ""
+
+wifi:
+  ssid: !secret ssid
+  password: !secret password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Leak-Detector Fallback Hotspot"
+    password: ""
+
+captive_portal:
+
+#pin used must be RTC powered to use as wake pin
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO26
+      mode:
+        input: True
+        pullup: True
+      inverted: True
+      allow_other_uses: True
+    name: Leak_Sensor
+    filters:
+        - delayed_on_off: 20ms
+    id: leak_binary
+
+deep_sleep:
+  run_duration: 10s
+  wakeup_pin:
+    number: GPIO26
+    inverted: True
+    allow_other_uses: True
+  id: deep_sleep_1
+
+script:
+  - id: leak_test
+    mode: queued
+    then:
+      - logger.log: "Checking for Leak"
+      - if:
+          condition:
+            binary_sensor.is_on: leak_binary
+          then:
+            - logger.log: 'Leak Detected'
+            - deep_sleep.prevent: deep_sleep_1
+          else:
+            - logger.log: 'No Leak Detected'
+            - deep_sleep.allow: deep_sleep_1
+      - delay: 5s
+      - script.execute: leak_test
